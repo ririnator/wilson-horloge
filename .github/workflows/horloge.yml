@@ -26,7 +26,7 @@ jobs:
         env:
           TICK_SECRET: ${{ secrets.TICK_SECRET }}
         run: |
-          curl -fsS --max-time 90 -o /dev/null -w 'HTTP %{http_code}\n' \
+          curl -fsS --max-time 90 -w '\nHTTP %{http_code}\n' \
             -H "Authorization: Bearer $TICK_SECRET" \
             "https://jarvis-beta-ruby.vercel.app/api/city?resource=wilson_tick"
 
