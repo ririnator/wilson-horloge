@@ -1,0 +1,44 @@
+# Horloge de Wilson : toutes les 5 minutes, appelle RiriCity pour qu'il regarde la journée
+# et envoie ses relances (resource wilson_tick de api/city.js, dépôt privé JARVIS).
+# Le secret TICK_SECRET est dans Settings > Secrets and variables > Actions.
+name: Horloge de Wilson
+
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+    - cron: '0 3 1 * *'   # une fois par mois : garde le dépôt actif
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: horloge
+  cancel-in-progress: false
+
+jobs:
+  tick:
+    if: github.event.schedule != '0 3 1 * *'
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Appelle RiriCity
+        env:
+          TICK_SECRET: ${{ secrets.TICK_SECRET }}
+        run: |
+          curl -fsS --max-time 90 -o /dev/null -w 'HTTP %{http_code}\n' \
+            -H "Authorization: Bearer $TICK_SECRET" \
+            "https://jarvis-beta-ruby.vercel.app/api/city?resource=wilson_tick"
+
+  # GitHub met en pause les tâches d'un dépôt public resté 60 jours sans changement.
+  garde-actif:
+    if: github.event.schedule == '0 3 1 * *'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          date -u +%F > dernier-mois.txt
+          git config user.name "horloge"
+          git config user.email "horloge@users.noreply.github.com"
+          git add dernier-mois.txt
+          git commit -m "Garde le dépôt actif" && git push
